@@ -1,0 +1,2312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Operacional — Bica & AMP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════
+   TOKENS
+══════════════════════════════════════ */
+:root {
+  --bg:        #0a0a0b;
+  --s1:        #111113;
+  --s2:        #18181b;
+  --s3:        #222226;
+  --border:    #2c2c32;
+  --border2:   #3e3e46;
+  --text:      #f0f0f2;
+  --text2:     #8a8a9a;
+  --text3:     #4a4a58;
+  --bica:      #e8835a;
+  --bica-dim:  rgba(232,131,90,.12);
+  --bica-b:    rgba(232,131,90,.3);
+  --amp:       #5a8ee8;
+  --amp-dim:   rgba(90,142,232,.12);
+  --amp-b:     rgba(90,142,232,.3);
+  --ok:        #3dd68c;
+  --ok-dim:    rgba(61,214,140,.1);
+  --warn:      #f5c542;
+  --warn-dim:  rgba(245,197,66,.1);
+  --danger:    #f06464;
+  --danger-dim:rgba(240,100,100,.1);
+  --r:         14px;
+  --r-sm:      8px;
+  --sans:      'DM Sans', sans-serif;
+  --syne:      'Syne', sans-serif;
+  --mono:      'DM Mono', monospace;
+  --touch:     52px;
+}
+
+/* ══════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100dvh;
+  overscroll-behavior: none;
+}
+button { font-family: var(--sans); cursor: pointer; border: none; background: none; }
+a { color: inherit; text-decoration: none; }
+input, select, textarea { font-family: var(--sans); }
+
+/* ══════════════════════════════════════
+   BOTTOM NAV (mobile-first)
+══════════════════════════════════════ */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--s1);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bnav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 4px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text3);
+  transition: color .15s;
+  min-height: 56px;
+}
+.bnav-item.active { color: var(--text); }
+.bnav-item.active .bnav-icon { background: var(--s3); }
+.bnav-icon {
+  width: 36px; height: 28px;
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  transition: background .15s;
+}
+
+/* ══════════════════════════════════════
+   TOP BAR
+══════════════════════════════════════ */
+.topbar {
+  position: sticky; top: 0; z-index: 90;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.topbar-title {
+  font-family: var(--syne);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.sync-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text3);
+}
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); }
+.sync-dot.ok { background: var(--ok); }
+.sync-dot.syncing { background: var(--warn); animation: blink 1s infinite; }
+.sync-dot.err { background: var(--danger); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ══════════════════════════════════════
+   PAGES
+══════════════════════════════════════ */
+.page { display: none; padding: 16px 16px 100px; }
+.page.active { display: block; }
+
+/* ══════════════════════════════════════
+   DASHBOARD — Resumo do dia
+══════════════════════════════════════ */
+.day-header {
+  margin-bottom: 20px;
+}
+.day-label {
+  font-family: var(--syne);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  line-height: 1;
+}
+.day-sub {
+  font-size: 13px;
+  color: var(--text2);
+  margin-top: 4px;
+  font-family: var(--mono);
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.dash-card {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dash-card.full { grid-column: 1 / -1; }
+.dash-card-num {
+  font-family: var(--syne);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  line-height: 1;
+}
+.dash-card-label { font-size: 12px; color: var(--text2); }
+.dash-card.danger { background: var(--danger-dim); border-color: rgba(240,100,100,.2); }
+.dash-card.warn { background: var(--warn-dim); border-color: rgba(245,197,66,.2); }
+.dash-card.ok { background: var(--ok-dim); border-color: rgba(61,214,140,.2); }
+
+.section-title {
+  font-family: var(--syne);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text3);
+  margin-bottom: 10px;
+  margin-top: 20px;
+}
+
+/* Casa pills */
+.casa-pills { display: flex; gap: 8px; margin-bottom: 20px; }
+.casa-pill {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.casa-pill.bica { background: var(--bica-dim); border-color: var(--bica-b); color: var(--bica); }
+.casa-pill.amp  { background: var(--amp-dim);  border-color: var(--amp-b);  color: var(--amp);  }
+
+/* Urgentes no dash */
+.urgente-item {
+  background: var(--danger-dim);
+  border: 1px solid rgba(240,100,100,.2);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.urgente-icon { font-size: 18px; }
+.urgente-text { flex: 1; font-size: 13px; font-weight: 500; }
+.urgente-meta { font-size: 11px; color: var(--text2); margin-top: 1px; }
+
+/* Quick actions */
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+.qa-btn {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all .15s;
+  text-align: left;
+}
+.qa-btn:active { background: var(--s3); transform: scale(.98); }
+.qa-icon { font-size: 22px; }
+.qa-label { font-size: 13px; font-weight: 600; color: var(--text); }
+.qa-sub   { font-size: 11px; color: var(--text2); }
+
+/* ══════════════════════════════════════
+   ACCORDION CHECKLISTS
+══════════════════════════════════════ */
+.checklist-filters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.checklist-filters::-webkit-scrollbar { display: none; }
+.cf-btn {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  white-space: nowrap;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.cf-btn.active-bica { background: var(--bica-dim); border-color: var(--bica-b); color: var(--bica); }
+.cf-btn.active-amp  { background: var(--amp-dim);  border-color: var(--amp-b);  color: var(--amp);  }
+.cf-btn.active-both { background: var(--s3); border-color: var(--border2); color: var(--text); }
+
+.accordion {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.accordion-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  cursor: pointer;
+  min-height: var(--touch);
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background .12s;
+}
+.accordion-head:active { background: var(--s2); }
+.acc-emoji { font-size: 20px; flex-shrink: 0; }
+.acc-info  { flex: 1; min-width: 0; }
+.acc-title {
+  font-family: var(--syne);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.acc-sub   { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.acc-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.acc-pct {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text3);
+}
+.acc-pct.done { color: var(--ok); }
+.acc-arrow {
+  font-size: 12px;
+  color: var(--text3);
+  transition: transform .2s;
+}
+.accordion.open .acc-arrow { transform: rotate(180deg); }
+
+/* Mini progress inside header */
+.acc-progress {
+  height: 3px;
+  background: var(--border);
+  width: 100%;
+}
+.acc-progress-fill {
+  height: 3px;
+  background: var(--ok);
+  transition: width .3s;
+  border-radius: 2px;
+}
+
+.accordion-body {
+  display: none;
+  border-top: 1px solid var(--border);
+}
+.accordion.open .accordion-body { display: block; }
+
+.acc-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text3);
+  padding: 12px 16px 6px;
+}
+
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 16px;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .1s;
+  min-height: var(--touch);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.check-item:active { background: var(--s2); }
+.check-item:first-of-type { border-top: none; }
+.check-box {
+  width: 22px; height: 22px;
+  border: 2px solid var(--border2);
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 1px;
+  transition: all .15s;
+}
+.check-item.done .check-box {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+.check-item.done .check-box::after {
+  content: '✓';
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bg);
+}
+.check-item.done .check-label { color: var(--text3); text-decoration: line-through; }
+.check-item.done .check-resp  { opacity: .4; }
+.check-label { font-size: 14px; line-height: 1.4; flex: 1; }
+.check-label.alert { color: var(--warn); }
+.check-resp  { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+
+.acc-actions {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  background: var(--s2);
+}
+.acc-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  transition: all .12s;
+}
+.acc-btn:active { transform: scale(.97); }
+.acc-btn.primary {
+  background: var(--ok-dim);
+  border-color: rgba(61,214,140,.3);
+  color: var(--ok);
+}
+.acc-btn.reset {
+  background: none;
+  max-width: 80px;
+}
+
+/* ══════════════════════════════════════
+   COMPRAS — Cards
+══════════════════════════════════════ */
+.compras-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.compras-stats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.cstat {
+  flex: 1;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px;
+  text-align: center;
+}
+.cstat-num {
+  font-family: var(--syne);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+.cstat-label { font-size: 10px; color: var(--text2); margin-top: 3px; }
+.cstat.danger { background: var(--danger-dim); border-color: rgba(240,100,100,.2); }
+.cstat.danger .cstat-num { color: var(--danger); }
+.cstat.ok { background: var(--ok-dim); border-color: rgba(61,214,140,.2); }
+.cstat.ok .cstat-num { color: var(--ok); }
+
+/* Categoria accordion de compras */
+.cat-accordion {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.cat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  min-height: var(--touch);
+  transition: background .12s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.cat-head:active { background: var(--s2); }
+.cat-emoji { font-size: 20px; }
+.cat-info  { flex: 1; }
+.cat-name  { font-weight: 600; font-size: 14px; }
+.cat-count { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.cat-badge {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.cat-arrow { font-size: 12px; color: var(--text3); transition: transform .2s; }
+.cat-accordion.open .cat-arrow { transform: rotate(180deg); }
+.cat-body { display: none; border-top: 1px solid var(--border); }
+.cat-accordion.open .cat-body { display: block; }
+
+/* Item de compra como card */
+.compra-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .1s;
+  min-height: var(--touch);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.compra-card:first-child { border-top: none; }
+.compra-card:active { background: var(--s2); }
+.compra-card-left { flex: 1; min-width: 0; }
+.compra-name {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.compra-name.done-item { text-decoration: line-through; color: var(--text3); }
+.compra-forn { font-size: 11px; color: var(--text2); margin-top: 2px; font-family: var(--mono); }
+.compra-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.compra-qtd { font-family: var(--mono); font-size: 12px; color: var(--text2); }
+
+/* Status badges */
+.st-badge {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  letter-spacing: .02em;
+}
+.st-Pendente  { background: var(--s3); color: var(--text3); border-color: var(--border); }
+.st-Buscando  { background: rgba(90,142,232,.15); color: var(--amp); border-color: var(--amp-b); }
+.st-Faltante  { background: var(--danger-dim); color: var(--danger); border-color: rgba(240,100,100,.3); }
+.st-Comprado  { background: var(--ok-dim); color: var(--ok); border-color: rgba(61,214,140,.3); }
+
+/* Progress bar inside cat header */
+.cat-progress { height: 3px; background: var(--border); width: 100%; }
+.cat-progress-fill { height: 3px; background: var(--ok); transition: width .4s; }
+
+/* Rodada badge */
+.rodada-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  background: var(--amp-dim); border: 1px solid var(--amp-b);
+  font-size: 11px; font-weight: 600; color: var(--amp);
+  font-family: var(--mono);
+}
+.rodada-pill.ativa { background: var(--bica-dim); border-color: var(--bica-b); color: var(--bica); }
+
+/* Histórico de rodadas */
+.hist-rodada {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.hist-rodada-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  -webkit-user-select: none; user-select: none;
+}
+.hist-rodada-head:active { background: var(--s2); }
+.hist-rodada-num { font-family: var(--syne); font-size: 13px; font-weight: 800; color: var(--text2); }
+.hist-rodada-info { flex: 1; font-size: 12px; color: var(--text2); }
+.hist-rodada-body { display: none; border-top: 1px solid var(--border); padding: 12px 16px; }
+.hist-rodada.open .hist-rodada-body { display: block; }
+.hist-rodada-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; font-size: 13px;
+}
+.hist-rodada-item .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* Modal de item */
+.item-modal-status {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-bottom: 4px;
+}
+.st-btn {
+  padding: 12px 8px;
+  border-radius: var(--r-sm);
+  border: 2px solid var(--border);
+  font-size: 13px; font-weight: 600;
+  transition: all .12s;
+  text-align: center;
+  cursor: pointer;
+  background: var(--s2);
+  color: var(--text2);
+}
+.st-btn:active { transform: scale(.97); }
+.st-btn.selected-Pendente  { border-color: var(--border2); color: var(--text); background: var(--s3); }
+.st-btn.selected-Buscando  { border-color: var(--amp-b); color: var(--amp); background: var(--amp-dim); }
+.st-btn.selected-Faltante  { border-color: rgba(240,100,100,.5); color: var(--danger); background: var(--danger-dim); }
+.st-btn.selected-Comprado  { border-color: rgba(61,214,140,.5); color: var(--ok); background: var(--ok-dim); }
+.alt-forn-wrap { display: none; margin-top: 12px; }
+.alt-forn-wrap.show { display: block; }
+
+.cat-add-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border-top: 1px dashed var(--border);
+  font-size: 13px;
+  color: var(--text3);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color .12s;
+}
+.cat-add-btn:active { color: var(--text); }
+
+.sync-bar {
+  position: fixed;
+  bottom: 64px; left: 12px; right: 12px;
+  background: var(--s2);
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 80;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  transform: translateY(20px);
+  opacity: 0;
+  transition: all .25s;
+  pointer-events: none;
+}
+.sync-bar.show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.sync-bar-text { flex: 1; font-size: 13px; }
+.sync-bar-btn {
+  background: var(--ok-dim);
+  border: 1px solid rgba(61,214,140,.3);
+  color: var(--ok);
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════
+   ESCALA
+══════════════════════════════════════ */
+.escala-person {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.esc-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.esc-info { flex: 1; min-width: 0; }
+.esc-name { font-weight: 600; font-size: 14px; font-family: var(--syne); }
+.esc-cargo { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.esc-dias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+.esc-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 7px;
+  min-width: 38px;
+}
+.esc-dia-label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--text3); letter-spacing: .05em; }
+.esc-dia-hour  { font-size: 9px; font-family: var(--mono); color: var(--text2); }
+.esc-dia.bica  { background: var(--bica-dim); border-color: var(--bica-b); }
+.esc-dia.bica .esc-dia-label { color: var(--bica); }
+.esc-dia.amp   { background: var(--amp-dim);  border-color: var(--amp-b);  }
+.esc-dia.amp .esc-dia-label  { color: var(--amp); }
+.esc-dia.both  { background: var(--s3); border-color: var(--border2); }
+.esc-dia.both .esc-dia-label { color: var(--text2); }
+.esc-alert {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--warn);
+  margin-top: 6px;
+  padding: 5px 8px;
+  background: var(--warn-dim);
+  border-radius: 6px;
+  border: 1px solid rgba(245,197,66,.2);
+}
+.esc-alert-d {
+  font-size: 11px;
+  color: var(--danger);
+  margin-top: 6px;
+  padding: 5px 8px;
+  background: var(--danger-dim);
+  border-radius: 6px;
+  border: 1px solid rgba(240,100,100,.2);
+}
+
+/* ══════════════════════════════════════
+   MODAL
+══════════════════════════════════════ */
+.overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.75);
+  z-index: 200;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.overlay.open { display: flex; }
+.modal {
+  background: var(--s1);
+  border: 1px solid var(--border2);
+  border-radius: var(--r) var(--r) 0 0;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  width: 100%;
+  max-height: 92dvh;
+  overflow-y: auto;
+}
+.modal-handle {
+  width: 36px; height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+.modal-title {
+  font-family: var(--syne);
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+.mfield { margin-bottom: 16px; }
+.mfield label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text3);
+  margin-bottom: 6px;
+}
+.minput, .mselect {
+  width: 100%;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 14px;
+  min-height: var(--touch);
+}
+.minput:focus, .mselect:focus { outline: none; border-color: var(--border2); }
+.mselect { cursor: pointer; }
+.mrow { display: flex; gap: 10px; }
+.mrow .mfield { flex: 1; }
+.modal-actions { display: flex; gap: 10px; margin-top: 4px; }
+.mbtn {
+  flex: 1;
+  padding: 14px;
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  font-weight: 600;
+  min-height: var(--touch);
+  transition: all .12s;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  background: var(--s2);
+}
+.mbtn:active { transform: scale(.97); }
+.mbtn.primary {
+  background: var(--ok-dim);
+  border-color: rgba(61,214,140,.3);
+  color: var(--ok);
+}
+
+/* ══════════════════════════════════════
+   CONFIG
+══════════════════════════════════════ */
+.config-section {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.config-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  min-height: var(--touch);
+}
+.config-item:first-child { border-top: none; }
+.config-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+.config-info { flex: 1; }
+.config-label { font-size: 14px; font-weight: 500; }
+.config-sub   { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.config-right { flex-shrink: 0; }
+.config-link-btn {
+  font-size: 12px;
+  color: var(--amp);
+  font-weight: 600;
+  padding: 6px 12px;
+  background: var(--amp-dim);
+  border-radius: 6px;
+  border: 1px solid var(--amp-b);
+}
+
+.token-setup {
+  background: var(--warn-dim);
+  border: 1px solid rgba(245,197,66,.25);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.token-setup h3 { font-size: 14px; font-weight: 700; color: var(--warn); margin-bottom: 6px; }
+.token-setup p  { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 14px; }
+
+/* ══════════════════════════════════════
+   UTILITÁRIOS
+══════════════════════════════════════ */
+.tag {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  border: 1px solid transparent;
+}
+.tag-bica { background: var(--bica-dim); color: var(--bica); border-color: var(--bica-b); }
+.tag-amp  { background: var(--amp-dim);  color: var(--amp);  border-color: var(--amp-b);  }
+.tag-both { background: var(--s3); color: var(--text2); border-color: var(--border2); }
+.tag-warn { background: var(--warn-dim); color: var(--warn); border-color: rgba(245,197,66,.25); }
+.tag-danger { background: var(--danger-dim); color: var(--danger); border-color: rgba(240,100,100,.2); }
+.tag-ok { background: var(--ok-dim); color: var(--ok); border-color: rgba(61,214,140,.2); }
+
+.btn-sm {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  background: var(--s2);
+  transition: all .12s;
+}
+.btn-sm:active { background: var(--s3); }
+.btn-sm.primary { background: var(--ok-dim); border-color: rgba(61,214,140,.3); color: var(--ok); }
+.btn-sm.amp { background: var(--amp-dim); border-color: var(--amp-b); color: var(--amp); }
+
+.empty { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-title" id="topbar-title">Hoje</div>
+  <div class="topbar-right">
+    <div class="sync-pill">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">offline</span>
+    </div>
+  </div>
+</div>
+
+<!-- PAGES -->
+
+<!-- ════ DASHBOARD ════ -->
+<div id="page-dash" class="page active">
+  <div class="day-header">
+    <div class="day-label" id="dash-dia">—</div>
+    <div class="day-sub" id="dash-data">—</div>
+  </div>
+
+  <div class="dash-grid" id="dash-grid">
+    <div class="dash-card" id="dc-urgentes">
+      <div class="dash-card-num" id="dc-urg-num">0</div>
+      <div class="dash-card-label">compras urgentes</div>
+    </div>
+    <div class="dash-card" id="dc-checks">
+      <div class="dash-card-num" id="dc-chk-num">—</div>
+      <div class="dash-card-label">checklists ativos</div>
+    </div>
+  </div>
+
+  <div class="section-title">🔴 Urgente agora</div>
+  <div id="dash-urgentes">
+    <div class="urgente-item">
+      <div class="urgente-icon">📋</div>
+      <div>
+        <div class="urgente-text">Sem token Notion configurado</div>
+        <div class="urgente-meta">Vá em ⚙️ Config para ativar sync</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">⚡ Ações rápidas</div>
+  <div class="quick-actions">
+    <button class="qa-btn" onclick="goTo('checks','🍸 Bica — Abertura')">
+      <div class="qa-icon">🍸</div>
+      <div class="qa-label">Abrir Bica</div>
+      <div class="qa-sub">Checklist de abertura</div>
+    </button>
+    <button class="qa-btn" onclick="goTo('checks','🎪 AMP — Abertura')">
+      <div class="qa-icon">🎪</div>
+      <div class="qa-label">Abrir AMP</div>
+      <div class="qa-sub">Checklist de evento</div>
+    </button>
+    <button class="qa-btn" onclick="goTo('checks','🔒 Bica — Fechamento')">
+      <div class="qa-icon">🔒</div>
+      <div class="qa-label">Fechar Bica</div>
+      <div class="qa-sub">+ conferência de caixa</div>
+    </button>
+    <button class="qa-btn" onclick="goTo('compras', null)">
+      <div class="qa-icon">🛒</div>
+      <div class="qa-label">Compras</div>
+      <div class="qa-sub">Lista da semana</div>
+    </button>
+  </div>
+
+  <div class="section-title" style="margin-top:24px">🏠 Casas</div>
+  <div class="casa-pills">
+    <div class="casa-pill bica">🍸 Bica Bar<br><small style="font-weight:400;font-size:10px">Qui · Sex · Sáb</small></div>
+    <div class="casa-pill amp">🎪 AMP 213<br><small style="font-weight:400;font-size:10px">Por demanda</small></div>
+  </div>
+</div>
+
+<!-- ════ CHECKLISTS ════ -->
+<div id="page-checks" class="page">
+  <div class="checklist-filters">
+    <button class="cf-btn active-both" onclick="filterChecks('all',this)">Todos</button>
+    <button class="cf-btn" onclick="filterChecks('bica',this)">🍸 Bica</button>
+    <button class="cf-btn" onclick="filterChecks('amp',this)">🎪 AMP</button>
+    <button class="cf-btn" onclick="filterChecks('terca',this)">🧹 Terça</button>
+  </div>
+  <div id="accordions-container"></div>
+</div>
+
+<!-- ════ COMPRAS ════ -->
+<div id="page-compras" class="page">
+  <div class="compras-header-bar">
+    <div>
+      <div style="font-family:var(--syne);font-size:16px;font-weight:800">Lista da semana</div>
+      <div style="font-size:12px;color:var(--text2);font-family:var(--mono)" id="semana-label">—</div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="btn-sm primary" onclick="syncCompras()">↑ Sync</button>
+      <button class="btn-sm" onclick="exportTxt()">↓ .txt</button>
+    </div>
+  </div>
+
+  <!-- Stats de progresso -->
+  <div class="compras-stats">
+    <div class="cstat ok"><div class="cstat-num" id="cs-comprado">0</div><div class="cstat-label">comprados</div></div>
+    <div class="cstat danger"><div class="cstat-num" id="cs-faltante">0</div><div class="cstat-label">faltantes</div></div>
+    <div class="cstat"><div class="cstat-num" id="cs-total">0</div><div class="cstat-label">total</div></div>
+  </div>
+
+  <!-- Barra de progresso geral -->
+  <div style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;color:var(--text2)">Progresso da rodada</span>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--text2)" id="cs-pct">0%</span>
+    </div>
+    <div style="background:var(--border);border-radius:4px;height:6px">
+      <div id="cs-bar" style="background:var(--ok);height:6px;border-radius:4px;width:0%;transition:width .4s"></div>
+    </div>
+  </div>
+
+  <!-- Rodada ativa -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap">
+    <span class="rodada-pill ativa" id="rodada-label">🔄 Rodada 1</span>
+    <div style="display:flex;gap:6px">
+      <button class="btn-sm" onclick="novaRodada()" id="btn-nova-rodada">+ Nova rodada</button>
+      <button class="btn-sm primary" onclick="fecharRodada()" id="btn-fechar-rodada">Fechar rodada</button>
+    </div>
+  </div>
+
+  <!-- Alertas de faltantes -->
+  <div id="faltantes-alert" style="display:none;margin-bottom:12px"></div>
+
+  <!-- Categorias -->
+  <div id="cat-accordions"></div>
+
+  <!-- Histórico de rodadas -->
+  <div id="hist-rodadas-wrap" style="margin-top:20px;display:none">
+    <div class="section-title">📊 Histórico de rodadas</div>
+    <div id="hist-rodadas-lista"></div>
+  </div>
+</div>
+
+<!-- Modal de item de compra -->
+<div class="overlay" id="modal-compra-item">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="mci-title">Item</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:6px;font-family:var(--mono)" id="mci-forn">—</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:20px" id="mci-qtd">—</div>
+
+    <div class="mfield">
+      <label>Status na rodada atual</label>
+      <div class="item-modal-status">
+        <button class="st-btn" data-st="Pendente" onclick="setItemStatus('Pendente',this)">🔲 Pendente</button>
+        <button class="st-btn" data-st="Buscando" onclick="setItemStatus('Buscando',this)">🔄 Buscando</button>
+        <button class="st-btn" data-st="Faltante" onclick="setItemStatus('Faltante',this)">⚠️ Faltante</button>
+        <button class="st-btn" data-st="Comprado" onclick="setItemStatus('Comprado',this)">✅ Comprado</button>
+      </div>
+    </div>
+
+    <div class="alt-forn-wrap" id="alt-forn-wrap">
+      <div class="mfield">
+        <label>Fornecedor alternativo</label>
+        <input type="text" class="minput" id="alt-forn-input" placeholder="ex: Mercado São João, Amazon…">
+      </div>
+      <div class="mfield">
+        <label>Observação</label>
+        <input type="text" class="minput" id="alt-obs-input" placeholder="ex: não tinha no mercado A">
+      </div>
+    </div>
+
+    <div class="mfield" style="margin-top:4px">
+      <label>Quantidade</label>
+      <input type="text" class="minput" id="mci-qtd-input" placeholder="ex: 2kg, 1 caixa…">
+    </div>
+
+    <div class="modal-actions">
+      <button class="mbtn" onclick="fecharModalItem()">Cancelar</button>
+      <button class="mbtn primary" onclick="salvarItemStatus()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ ESCALA ════ -->
+<div id="page-escala" class="page">
+  <div style="font-family:var(--syne);font-size:16px;font-weight:800;margin-bottom:4px">Escala da equipe</div>
+  <div style="font-size:13px;color:var(--text2);margin-bottom:20px">Quem, onde e quando — semana operacional</div>
+  <div id="escala-lista"></div>
+  <div class="config-section" style="margin-top:16px">
+    <div class="config-item">
+      <div class="config-icon">⏰</div>
+      <div class="config-info">
+        <div class="config-label">Intervalo — sem escala definida</div>
+        <div class="config-sub">Lana define antes da próxima abertura. Sugestão: 30 min/pessoa a partir das 20h</div>
+      </div>
+      <span class="tag tag-warn">Pendente</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════ CONFIG ════ -->
+<div id="page-config" class="page">
+  <div style="font-family:var(--syne);font-size:16px;font-weight:800;margin-bottom:16px">Configuração</div>
+
+  <div class="token-setup" id="token-setup-card">
+    <h3>🔑 Notion Token</h3>
+    <p>Crie uma integração em <strong>notion.so/my-integrations</strong>, compartilhe a página com ela, e cole o token abaixo. Fica salvo só no seu navegador.</p>
+    <div class="mfield">
+      <label>Token (secret_...)</label>
+      <input type="password" class="minput" id="cfg-token" placeholder="secret_xxxxxxxxxxxx" style="min-height:44px">
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-sm primary" onclick="salvarToken()" style="flex:1;padding:10px">Salvar</button>
+      <button class="btn-sm" onclick="limparToken()" style="padding:10px 16px">Limpar</button>
+    </div>
+  </div>
+
+  <div class="config-section">
+    <div class="config-item">
+      <div class="config-icon">🏠</div>
+      <div class="config-info">
+        <div class="config-label">Hub Operacional</div>
+        <div class="config-sub">Página principal no Notion</div>
+      </div>
+      <div class="config-right">
+        <a href="https://www.notion.so/36073fa6ae26815a8371c31d800c4fd2" target="_blank" class="config-link-btn">Abrir ↗</a>
+      </div>
+    </div>
+    <div class="config-item">
+      <div class="config-icon">📋</div>
+      <div class="config-info">
+        <div class="config-label">Registros de Operação</div>
+        <div class="config-sub">Histórico de aberturas e fechamentos</div>
+      </div>
+      <div class="config-right">
+        <a href="https://www.notion.so/0376555d5d474fb8b36e702150407f4f" target="_blank" class="config-link-btn">Abrir ↗</a>
+      </div>
+    </div>
+    <div class="config-item">
+      <div class="config-icon">🛒</div>
+      <div class="config-info">
+        <div class="config-label">Lista de Compras</div>
+        <div class="config-sub">Database semanal no Notion</div>
+      </div>
+      <div class="config-right">
+        <a href="https://www.notion.so/4c20161695564fdda6afcf40d15d01c4" target="_blank" class="config-link-btn">Abrir ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="config-section">
+    <div class="config-item">
+      <div class="config-icon">💾</div>
+      <div class="config-info">
+        <div class="config-label">Backup local</div>
+        <div class="config-sub">Exportar todos os dados em JSON</div>
+      </div>
+      <div class="config-right">
+        <button class="btn-sm" onclick="exportBackup()">↓ JSON</button>
+      </div>
+    </div>
+    <div class="config-item">
+      <div class="config-icon">🗑️</div>
+      <div class="config-info">
+        <div class="config-label">Limpar dados locais</div>
+        <div class="config-sub">Remove checklists, listas e token</div>
+      </div>
+      <div class="config-right">
+        <button class="btn-sm" style="color:var(--danger);border-color:rgba(240,100,100,.3)" onclick="if(confirm('Limpar tudo?'))limparTudo()">Limpar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="bnav-item active" onclick="showPage('dash',this)">
+    <div class="bnav-icon">🏠</div>Início
+  </button>
+  <button class="bnav-item" onclick="showPage('checks',this)">
+    <div class="bnav-icon">✅</div>Checklists
+  </button>
+  <button class="bnav-item" onclick="showPage('compras',this)">
+    <div class="bnav-icon">🛒</div>Compras
+  </button>
+  <button class="bnav-item" onclick="showPage('escala',this)">
+    <div class="bnav-icon">👥</div>Escala
+  </button>
+  <button class="bnav-item" onclick="showPage('config',this)">
+    <div class="bnav-icon">⚙️</div>Config
+  </button>
+</nav>
+
+<!-- MODAL REGISTRAR -->
+<div class="overlay" id="modal-registrar">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-titulo">Registrar Execução</div>
+    <div class="modal-sub" id="modal-sub">Preencha para salvar no Notion</div>
+    <div class="mfield">
+      <label>Responsável</label>
+      <select class="mselect" id="modal-resp">
+        <option>Lana</option><option>Suedney</option><option>Thiago</option>
+        <option>Luciano</option><option>Rafael</option><option>Ruan</option><option>Outro</option>
+      </select>
+    </div>
+    <div class="mrow">
+      <div class="mfield"><label>Hora início</label><input type="time" class="minput" id="modal-hi"></div>
+      <div class="mfield"><label>Hora fim</label><input type="time" class="minput" id="modal-hf"></div>
+    </div>
+    <div class="mfield" id="mfield-caixa" style="display:none">
+      <label>Valor do caixa (R$)</label>
+      <input type="number" class="minput" id="modal-caixa" placeholder="0,00" step="0.01">
+    </div>
+    <div class="mfield">
+      <label>Observações</label>
+      <input type="text" class="minput" id="modal-obs" placeholder="Opcional">
+    </div>
+    <div class="modal-actions">
+      <button class="mbtn" onclick="fecharModal()">Cancelar</button>
+      <button class="mbtn primary" id="btn-enviar" onclick="enviarRegistro()">Enviar ao Notion</button>
+    </div>
+  </div>
+</div>
+
+<!-- SYNC BAR -->
+<div class="sync-bar" id="sync-bar">
+  <div class="sync-dot syncing"></div>
+  <div class="sync-bar-text" id="sync-bar-text">Sincronizando…</div>
+  <button class="sync-bar-btn" id="sync-bar-btn" onclick="hideSyncBar()">OK</button>
+</div>
+
+<!-- MODAL PESSOA -->
+<div class="overlay" id="modal-pessoa">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div id="mp-avatar" style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0"></div>
+      <div>
+        <div id="mp-nome" style="font-family:var(--syne);font-size:20px;font-weight:800;line-height:1"></div>
+        <div id="mp-cargo" style="font-size:13px;color:var(--text2);margin-top:3px"></div>
+        <div id="mp-casas" style="display:flex;gap:5px;margin-top:6px"></div>
+      </div>
+    </div>
+    <!-- Alerta -->
+    <div id="mp-alerta" style="display:none;margin-bottom:16px"></div>
+    <!-- Escala -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:8px">Dias na escala</div>
+      <div id="mp-dias" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+    <!-- Funções -->
+    <div id="mp-funcoes"></div>
+    <button class="mbtn" style="width:100%;margin-top:16px" onclick="document.getElementById('modal-pessoa').classList.remove('open')">Fechar</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════
+const DB_OP      = 'd5e747f1b52a4ec2959f29c29e74a068';
+const DB_COMP    = '11eaba0c3ec44fa38347f6a8c0911c12';
+const NOTION_API = 'https://api.notion.com/v1';
+const N_VER      = '2022-06-28';
+
+// ════════════════════════════════════════════════
+// CHECKLIST DATA
+// ════════════════════════════════════════════════
+const CHECKLISTS = [
+  { id:'bica-ab', emoji:'🍸', title:'Bica Bar — Abertura', casa:'Bica Bar', tipo:'Abertura Bica', filter:'bica',
+    sections:[
+      { label:'🏠 Espaço', items:[
+        {t:'Abrir a casa e checar ambiente geral', r:'Lana'},
+        {t:'Verificar limpeza do salão (Thiago executou?)', r:'Lana + Thiago'},
+        {t:'Iluminação e climatização reguladas', r:'Lana'},
+        {t:'Banheiros limpos, papel e sabonete abastecidos', r:'Thiago'},
+        {t:'Mesas com mise en place correto', r:'Gleysson + Douglas'},
+        {t:'Música no volume de ambiente', r:'Lana'},
+      ]},
+      { label:'🍹 Bar', items:[
+        {t:'Bar organizado: garrafas, taças, ferramentas', r:'Luciano + Rafael'},
+        {t:'Frutas higienizadas e fatiadas', r:'Luciano'},
+        {t:'Xaropes artesanais disponíveis', r:'Luciano'},
+        {t:'Gelo disponível — entrega confirmada?', r:'Lana'},
+        {t:'Bebidas refrigeradas (cerveja, espumante, refri)', r:'Rafael'},
+        {t:'Cardápio conferido com estoque', r:'Luciano'},
+      ]},
+      { label:'🍽 Cozinha', items:[
+        {t:'Pré-produção finalizada', r:'Suedney'},
+        {t:'Cardápio alinhado com a equipe', r:'Suedney'},
+        {t:'Armazenamento conferido (data/temperatura)', r:'Suedney'},
+        {t:'Refeição da equipe preparada — até 17h30', r:'Suedney'},
+      ]},
+      { label:'📋 Operacional', items:[
+        {t:'Toda equipe presente nos postos até 17h50', r:'Lana'},
+        {t:'Ruan informado do nível de estoque', r:'Ruan + Lana'},
+        {t:'Escala de intervalos comunicada', r:'Lana', alert:true},
+        {t:'Briefing rápido de equipe (2 min)', r:'Lana'},
+      ]},
+    ]
+  },
+  { id:'bica-fe', emoji:'🔒', title:'Bica Bar — Fechamento', casa:'Bica Bar', tipo:'Fechamento Bica', filter:'bica',
+    sections:[
+      { label:'💰 Caixa — obrigatório', items:[
+        {t:'Contar caixa físico e registrar o valor', r:'Lana → Thaynan audita seg.'},
+        {t:'Conferir total de vendas no sistema', r:'Lana'},
+        {t:'Registrar discrepância e comunicar Thaynan', r:'Lana → WhatsApp'},
+        {t:'Caixa guardado em local seguro', r:'Lana'},
+      ]},
+      { label:'🍹 Bar & Cozinha', items:[
+        {t:'Bar limpo e organizado', r:'Luciano + Rafael'},
+        {t:'Bebidas e destilados guardados', r:'Rafael'},
+        {t:'Cozinha limpa, equipamentos desligados', r:'Suedney'},
+        {t:'Alimentos armazenados (data/temperatura)', r:'Suedney'},
+        {t:'Lixo retirado e descartado', r:'Thiago'},
+      ]},
+      { label:'📦 Estoque', items:[
+        {t:'Ruan faz contagem rápida e registra', r:'Ruan'},
+        {t:'Itens abaixo do mínimo sinalizados para Lana', r:'Ruan → Lana'},
+        {t:'Suedney sinaliza faltantes da cozinha', r:'Suedney → Lana'},
+      ]},
+      { label:'🏠 Fechamento estrutural', items:[
+        {t:'Salão limpo e mesas organizadas', r:'Thiago + garçons'},
+        {t:'Climatização e iluminação desligadas', r:'Lana'},
+        {t:'Portas e janelas travadas', r:'Lana'},
+        {t:'Toda equipe saiu — Lana é a última', r:'Lana'},
+      ]},
+    ]
+  },
+  { id:'amp-ab', emoji:'🎪', title:'AMP 213 — Abertura', casa:'AMP 213', tipo:'Abertura AMP', filter:'amp',
+    sections:[
+      { label:'📋 Pré-evento D-1', items:[
+        {t:'Contrato assinado e arquivado', r:'Thaynan'},
+        {t:'Fornecedores externos confirmados', r:'Thaynan'},
+        {t:'Flores, brotos e cogumelos pedidos — PRAZO D-1', r:'Lana', alert:true},
+        {t:'Equipe escalada para o evento', r:'Lana'},
+      ]},
+      { label:'🏛 Montagem — 4h antes', items:[
+        {t:'Casa aberta e vistoriada', r:'Lana'},
+        {t:'Decoração e fornecedores recebidos', r:'Lana'},
+        {t:'Mesas montadas conforme layout', r:'Equipe evento'},
+        {t:'Iluminação e climatização configuradas', r:'Lana'},
+        {t:'Banheiros limpos e abastecidos', r:'Thiago'},
+      ]},
+      { label:'🍽 Serviço', items:[
+        {t:'Equipe de buffet recebida e alinhada', r:'Suedney + Lana'},
+        {t:'Cardápio e ingredientes disponíveis', r:'Suedney'},
+        {t:'Bar montado para o evento', r:'Luciano + Rafael'},
+        {t:'Briefing de equipe antes dos convidados', r:'Lana — obrigatório'},
+      ]},
+    ]
+  },
+  { id:'amp-fe', emoji:'🔒', title:'AMP 213 — Fechamento', casa:'AMP 213', tipo:'Fechamento AMP', filter:'amp',
+    sections:[
+      { label:'💰 Financeiro', items:[
+        {t:'Saldo do cliente confirmado como pago', r:'Thaynan confirma antes'},
+        {t:'Extras consumidos registrados → Thaynan', r:'Lana → Thaynan'},
+      ]},
+      { label:'🏛 Desmontagem', items:[
+        {t:'Fornecedores externos retiram itens', r:'Lana supervisiona'},
+        {t:'Limpeza geral do espaço', r:'Thiago'},
+        {t:'Cozinha limpa e equipamentos desligados', r:'Suedney'},
+        {t:'Casa vistoriada antes de fechar', r:'Lana'},
+        {t:'Portas, janelas e alarme ativados', r:'Lana — última a sair'},
+      ]},
+    ]
+  },
+  { id:'terca', emoji:'🧹', title:'Terça — Limpeza & Pré-prod.', casa:'Ambos', tipo:'Limpeza Terça', filter:'terca',
+    sections:[
+      { label:'🧽 Espaço — Lana + Thiago', items:[
+        {t:'Limpeza profunda: salão, piso, móveis, vidros', r:'Thiago'},
+        {t:'Banheiro + reposição de insumos', r:'Thiago'},
+        {t:'Organização geral da casa', r:'Lana + Thiago'},
+        {t:'Vistoria de manutenção → reportar Thaynan', r:'Lana'},
+      ]},
+      { label:'👨‍🍳 Cozinha — Suedney', items:[
+        {t:'Limpeza profunda: fogão, bancadas, geladeiras', r:'Suedney + ajudante'},
+        {t:'Pré-produção insumos para quinta-feira', r:'Suedney'},
+        {t:'Estoque verificado — sinalizar falta', r:'Suedney → Lana'},
+        {t:'Lista de compras da cozinha enviada — PRAZO 14h', r:'Suedney', alert:true},
+      ]},
+      { label:'🍸 Bar — Luciano', items:[
+        {t:'Xaropes artesanais produzidos para a semana', r:'Luciano'},
+        {t:'Limpeza e organização do bar', r:'Luciano'},
+        {t:'Lista de insumos do bar enviada — PRAZO 14h', r:'Luciano', alert:true},
+      ]},
+      { label:'💸 Pagamentos — Lana até 17h', items:[
+        {t:'Erick envia os valores para Lana', r:'Erick → Lana'},
+        {t:'Lana realiza Pix para cada membro', r:'Lana — até 17h'},
+        {t:'Comprovantes enviados para Thaynan', r:'Lana → Thaynan'},
+      ]},
+    ]
+  },
+];
+
+// ════════════════════════════════════════════════
+// COMPRAS DATA
+// ════════════════════════════════════════════════
+const CATS = [
+  { key:'hortifruti', emoji:'🥬', label:'Hortifrútti & Feira', cat:'Hortifrútti', casa:'Ambos', items:[
+    {item:'Folhas verdes (mix)',qtd:'',forn:'Hortifrútti / Feira',urg:'Normal'},
+    {item:'Tomate',qtd:'',forn:'Hortifrútti',urg:'Normal'},
+    {item:'Limão',qtd:'',forn:'Hortifrútti',urg:'Normal'},
+    {item:'Frutas p/ drinks (maracujá, morango)',qtd:'',forn:'Feira',urg:'Normal'},
+    {item:'Ervas frescas (manjericão, alecrim)',qtd:'',forn:'Hortifrútti',urg:'Normal'},
+  ]},
+  { key:'carnes', emoji:'🥩', label:'Carnes & Proteínas', cat:'Carnes e Proteínas', casa:'Ambos', items:[
+    {item:'Carne de sol',qtd:'',forn:'Boi Quente',urg:'Normal'},
+    {item:'Frango (equipe)',qtd:'',forn:'praso.com.br',urg:'Normal'},
+    {item:'Peixe / frutos do mar',qtd:'',forn:'Peixaria',urg:'Normal'},
+    {item:'Quenga de coco',qtd:'',forn:'Peixaria',urg:'Normal'},
+    {item:'Queijo coalho R$29,90/kg',qtd:'',forn:'Fornecedor queijo',urg:'Normal'},
+  ]},
+  { key:'bebidas', emoji:'🍺', label:'Bebidas', cat:'Bebidas', casa:'Bica Bar', items:[
+    {item:'Cerveja Heineken',qtd:'',forn:'Heineken app — 72h antes',urg:'Normal'},
+    {item:'Cerveja Ambev',qtd:'',forn:'Ambev app — 48h antes',urg:'Normal'},
+    {item:'Espumante',qtd:'',forn:'Casa das Bebidas',urg:'Normal'},
+    {item:'Vinho tinto',qtd:'',forn:'Casa das Bebidas',urg:'Normal'},
+    {item:'Vinho branco',qtd:'',forn:'Casa das Bebidas',urg:'Normal'},
+    {item:'Refrigerantes e água',qtd:'',forn:'Ambev app',urg:'Normal'},
+  ]},
+  { key:'bar', emoji:'🍸', label:'Insumos do Bar', cat:'Bar', casa:'Bica Bar', items:[
+    {item:'Gelo',qtd:'',forn:'Fornecedor gelo (WhatsApp)',urg:'Normal'},
+    {item:'Açúcar / insumos xaropes',qtd:'',forn:'Mercado / praso.com.br',urg:'Normal'},
+    {item:'Gás de sifão',qtd:'',forn:'A definir',urg:'Normal'},
+    {item:'Taças / copos (reposição)',qtd:'',forn:'A definir',urg:'Baixa'},
+  ]},
+  { key:'flores', emoji:'🌸', label:'Flores, Brotos & Cogumelos', cat:'Flores e AMP', casa:'AMP 213', items:[
+    {item:'Flores (arranjos)',qtd:'',forn:'Fornecedor flores — pedir D-1',urg:'Normal'},
+    {item:'Brotos',qtd:'',forn:'Fornecedor flores — pedir D-1',urg:'Normal'},
+    {item:'Cogumelos',qtd:'',forn:'Fornecedor flores — pedir D-1',urg:'Normal'},
+  ]},
+  { key:'descartaveis', emoji:'🗑️', label:'Descartáveis & Limpeza', cat:'Descartáveis', casa:'Ambos', items:[
+    {item:'Copos descartáveis',qtd:'',forn:'Limoeiro/Natan',urg:'Normal'},
+    {item:'Embalagens take-away',qtd:'',forn:'Limoeiro/Natan',urg:'Normal'},
+    {item:'Papel toalha / guardanapos',qtd:'',forn:'Limoeiro/Natan',urg:'Normal'},
+    {item:'Aventais / EPIs cozinha',qtd:'',forn:'A definir',urg:'Baixa'},
+  ]},
+];
+
+// ════════════════════════════════════════════════
+// ESCALA DATA
+// ════════════════════════════════════════════════
+const EQUIPE = [
+  { nome:'Lana', cargo:'Gerente Operacional', emoji:'🏠', cor:'#3dd68c',
+    alert:null, dias:[
+      {d:'Ter',t:'9h–17h',c:'both'},{d:'Qui',t:'abertura',c:'both'},
+      {d:'Sex',t:'17h–01h',c:'bica'},{d:'Sáb',t:'17h–01h',c:'bica'},{d:'Dom',t:'eventual',c:'amp'},
+    ]},
+  { nome:'Suedney', cargo:'Chef', emoji:'👨‍🍳', cor:'#fb923c',
+    alertDanger:'Histórico de desvio — monitorar conduta.',
+    dias:[
+      {d:'Ter',t:'pré-prod',c:'both'},{d:'Qui',t:'16h–',c:'both'},
+      {d:'Sex',t:'16h–00h',c:'both'},{d:'Sáb',t:'a conf.',c:'both'},
+    ]},
+  { nome:'Thiago', cargo:'Limpeza & Suporte', emoji:'🧹', cor:'#94a3b8',
+    dias:[
+      {d:'Ter',t:'9h–17h',c:'both'},{d:'Qui',t:'17h–01h',c:'bica'},
+      {d:'Sex',t:'17h–01h',c:'bica'},{d:'Sáb',t:'a conf.',c:'bica'},
+    ]},
+  { nome:'Luciano', cargo:'Bartender', emoji:'🍸', cor:'#f472b6',
+    alert:'Ocioso após terça — propor novas demandas.',
+    dias:[
+      {d:'Ter',t:'xaropes',c:'bica'},{d:'Qui',t:'17h–01h',c:'bica'},
+      {d:'Sex',t:'17h–01h',c:'bica'},{d:'Sáb',t:'a conf.',c:'bica'},
+    ]},
+  { nome:'Rafael', cargo:'Bartender', emoji:'🍹', cor:'#e879f9',
+    dias:[
+      {d:'Qui',t:'17h–01h',c:'bica'},{d:'Sex',t:'17h–01h',c:'bica'},{d:'Sáb',t:'a conf.',c:'bica'},
+    ]},
+  { nome:'Ruan', cargo:'Estoque & Recepção', emoji:'📦', cor:'#22d3ee',
+    alert:'Conflito Sex: estoque + recepção simultâneos. Definir horário de contagem.',
+    dias:[
+      {d:'Qui',t:'17h–01h',c:'bica'},{d:'Sex',t:'recepção',c:'bica'},{d:'Sáb',t:'a conf.',c:'bica'},
+    ]},
+  { nome:'Gleysson', cargo:'Garçom', emoji:'🤵', cor:'#2dd4bf',
+    dias:[
+      {d:'Qui',t:'17h–01h',c:'bica'},{d:'Sex',t:'17h–01h',c:'bica'},{d:'Sáb',t:'a conf.',c:'bica'},
+    ]},
+  { nome:'Douglas', cargo:'Garçom', emoji:'🤵', cor:'#34d399',
+    dias:[
+      {d:'Qui',t:'17h–01h',c:'bica'},{d:'Sex',t:'17h–01h',c:'bica'},{d:'Sáb',t:'a conf.',c:'bica'},
+    ]},
+  { nome:'+1 Garçom', cargo:'Reforço — a definir', emoji:'🤵', cor:'#facc15',
+    alert:'Definir quem é o garçom extra das sextas e sábados.',
+    dias:[
+      {d:'Sex',t:'reforço',c:'bica'},{d:'Sáb',t:'a conf.',c:'bica'},
+    ]},
+  { nome:'Jade', cargo:'Comercial AMP 213', emoji:'💼', cor:'#f472b6',
+    dias:[
+      {d:'Qui',t:'eventos',c:'amp'},{d:'Sex',t:'eventos',c:'amp'},
+      {d:'Sáb',t:'eventos',c:'amp'},{d:'Dom',t:'eventual',c:'amp'},
+    ]},
+];
+
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+let _modalCheckId='', _modalTipo='', _modalCasa='';
+
+// ════════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════════
+const PAGE_TITLES = {dash:'Hoje',checks:'Checklists',compras:'Compras',escala:'Escala',config:'Config'};
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[id]||'';
+  if(id==='compras') renderCatAccordions();
+  if(id==='checks') renderAccordions();
+  if(id==='escala') renderEscala();
+}
+function goTo(pageId, openAccordion) {
+  const navBtn = document.querySelector(`.bnav-item[onclick*="'${pageId}'"]`);
+  if(navBtn) { showPage(pageId, navBtn); }
+  if(openAccordion && pageId==='checks') {
+    setTimeout(()=>{
+      const acc = document.querySelector(`.accordion[data-titulo="${openAccordion}"]`);
+      if(acc && !acc.classList.contains('open')) acc.querySelector('.accordion-head').click();
+      if(acc) acc.scrollIntoView({behavior:'smooth',block:'start'});
+    }, 100);
+  }
+}
+
+// ════════════════════════════════════════════════
+// CHECKLISTS
+// ════════════════════════════════════════════════
+function renderAccordions(filter='all') {
+  const container = document.getElementById('accordions-container');
+  container.innerHTML='';
+  const list = filter==='all' ? CHECKLISTS : CHECKLISTS.filter(c=>c.filter===filter);
+  list.forEach(cl => {
+    const saved = JSON.parse(localStorage.getItem('chk_'+cl.id)||'{}');
+    let total=0, done=0;
+    cl.sections.forEach(s=>s.items.forEach((it,i)=>{ total++; if(saved[s.label+i]) done++; }));
+    const pct = total ? Math.round(done/total*100) : 0;
+    const acc = document.createElement('div');
+    acc.className='accordion'; acc.dataset.id=cl.id; acc.dataset.titulo=cl.title;
+
+    let sectionsHtml='';
+    cl.sections.forEach(s => {
+      sectionsHtml+=`<div class="acc-section-label">${s.label}</div>`;
+      s.items.forEach((it,i) => {
+        const key=s.label+i;
+        const isDone = !!saved[key];
+        sectionsHtml+=`
+          <div class="check-item${isDone?' done':''}" data-key="${key}" data-clid="${cl.id}" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div>
+              <div class="check-label${it.alert?' alert':''}">${it.t}</div>
+              <div class="check-resp">${it.r}</div>
+            </div>
+          </div>`;
+      });
+    });
+
+    acc.innerHTML=`
+      <div class="acc-progress"><div class="acc-progress-fill" style="width:${pct}%"></div></div>
+      <div class="accordion-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="acc-emoji">${cl.emoji}</div>
+        <div class="acc-info">
+          <div class="acc-title">${cl.title}</div>
+          <div class="acc-sub">${done}/${total} itens · ${pct}%</div>
+        </div>
+        <div class="acc-right">
+          <span class="acc-pct${pct===100?' done':''}">${pct===100?'✓ Completo':''}</span>
+          <span class="acc-arrow">▾</span>
+        </div>
+      </div>
+      <div class="accordion-body">
+        ${sectionsHtml}
+        <div class="acc-actions">
+          <button class="acc-btn reset" onclick="resetChecklist('${cl.id}')">Reset</button>
+          <button class="acc-btn primary" onclick="openModal('${cl.id}')">✓ Registrar no Notion</button>
+        </div>
+      </div>`;
+    container.appendChild(acc);
+  });
+}
+
+function filterChecks(filter, btn) {
+  document.querySelectorAll('.cf-btn').forEach(b=>b.classList.remove('active-bica','active-amp','active-both'));
+  const cls = filter==='bica'?'active-bica':filter==='amp'?'active-amp':'active-both';
+  btn.classList.add(cls);
+  renderAccordions(filter==='terca'?'terca':filter);
+}
+
+function toggleCheck(el) {
+  const clid = el.dataset.clid, key = el.dataset.key;
+  el.classList.toggle('done');
+  const saved = JSON.parse(localStorage.getItem('chk_'+clid)||'{}');
+  saved[key] = el.classList.contains('done');
+  localStorage.setItem('chk_'+clid, JSON.stringify(saved));
+  // update accordion header
+  const acc = el.closest('.accordion');
+  const allItems = acc.querySelectorAll('.check-item');
+  const doneItems = acc.querySelectorAll('.check-item.done');
+  const pct = Math.round(doneItems.length/allItems.length*100);
+  acc.querySelector('.acc-progress-fill').style.width=pct+'%';
+  acc.querySelector('.acc-sub').textContent=`${doneItems.length}/${allItems.length} itens · ${pct}%`;
+  const pctEl = acc.querySelector('.acc-pct');
+  pctEl.textContent = pct===100?'✓ Completo':'';
+  pctEl.className='acc-pct'+(pct===100?' done':'');
+  updateDashStats();
+}
+
+function resetChecklist(id) {
+  if(!confirm('Resetar este checklist?')) return;
+  localStorage.removeItem('chk_'+id);
+  renderAccordions();
+}
+
+// ════════════════════════════════════════════════
+// MODAL
+// ════════════════════════════════════════════════
+function openModal(clid) {
+  const cl = CHECKLISTS.find(c=>c.id===clid);
+  _modalCheckId=clid; _modalTipo=cl.tipo; _modalCasa=cl.casa;
+  const saved = JSON.parse(localStorage.getItem('chk_'+clid)||'{}');
+  let total=0,done=0;
+  cl.sections.forEach(s=>s.items.forEach((it,i)=>{total++;if(saved[s.label+i])done++;}));
+  document.getElementById('modal-titulo').textContent=cl.title;
+  document.getElementById('modal-sub').textContent=`${done}/${total} itens concluídos`;
+  document.getElementById('mfield-caixa').style.display=cl.tipo==='Fechamento Bica'?'block':'none';
+  document.getElementById('modal-hi').value=new Date().toTimeString().slice(0,5);
+  document.getElementById('modal-hf').value='';
+  document.getElementById('modal-obs').value='';
+  document.getElementById('modal-registrar').classList.add('open');
+}
+function fecharModal() { document.getElementById('modal-registrar').classList.remove('open'); }
+
+async function enviarRegistro() {
+  const btn=document.getElementById('btn-enviar');
+  btn.disabled=true; btn.textContent='Enviando…';
+  const token=localStorage.getItem('notion_token');
+  const cl=CHECKLISTS.find(c=>c.id===_modalCheckId);
+  const saved=JSON.parse(localStorage.getItem('chk_'+_modalCheckId)||'{}');
+  let total=0,done=0;
+  cl.sections.forEach(s=>s.items.forEach((it,i)=>{total++;if(saved[s.label+i])done++;}));
+  const hoje=new Date().toISOString().slice(0,10);
+  const caixa=parseFloat(document.getElementById('modal-caixa').value)||0;
+  const props={
+    'Evento':{title:[{text:{content:`${_modalTipo} — ${hoje}`}}]},
+    'Tipo':{select:{name:_modalTipo}},
+    'Casa':{select:{name:_modalCasa}},
+    'Responsável':{select:{name:document.getElementById('modal-resp').value}},
+    'Data':{date:{start:hoje}},
+    'Hora Início':{rich_text:[{text:{content:document.getElementById('modal-hi').value}}]},
+    'Hora Fim':{rich_text:[{text:{content:document.getElementById('modal-hf').value}}]},
+    'Itens Concluídos':{number:done},
+    'Total de Itens':{number:total},
+    'Observações':{rich_text:[{text:{content:document.getElementById('modal-obs').value}}]},
+    'Semana':{rich_text:[{text:{content:getSemana()}}]},
+  };
+  if(_modalTipo==='Fechamento Bica'){props['Caixa Conferido']={checkbox:true};props['Valor Caixa']={number:caixa};}
+  let sucesso=false;
+  if(token){
+    try {
+      setSyncStatus('syncing','enviando…');
+      const r=await nPost('pages',{parent:{database_id:DB_OP},properties:props},token);
+      if(r.id){sucesso=true;setSyncStatus('ok','sincronizado');}
+      else throw new Error(JSON.stringify(r));
+    } catch(e){setSyncStatus('err','erro');console.error(e);}
+  }
+  salvarLocal('chk_historico',{ts:new Date().toISOString(),tipo:_modalTipo,casa:_modalCasa,done,total,sincronizado:sucesso});
+  btn.disabled=false; btn.textContent='Enviar ao Notion';
+  fecharModal();
+  showSyncBar(sucesso?`✅ Registrado: ${_modalTipo}`:`💾 Salvo localmente (sem token)`);
+}
+
+function salvarLocal(key, obj) {
+  const arr=JSON.parse(localStorage.getItem(key)||'[]');
+  arr.unshift(obj);
+  localStorage.setItem(key,JSON.stringify(arr.slice(0,200)));
+}
+
+// ════════════════════════════════════════════════
+// ════════════════════════════════════════════════
+// COMPRAS — Sistema de Rodadas
+// ════════════════════════════════════════════════
+
+// Estado da rodada atual: { catKey_idx: { status, altForn, altObs } }
+let _rodadaAtual = 1;
+let _rodadaStatus = {}; // key: `catKey_idx`, val: {status, altForn, altObs, qtd}
+let _rodadaHist   = []; // array de rodadas fechadas
+let _itemEditKey  = null; // key do item sendo editado no modal
+
+function loadCompras(){
+  const saved=JSON.parse(localStorage.getItem('compras_data')||'null');
+  if(saved) saved.forEach((cat,i)=>{if(CATS[i])CATS[i].items=cat;});
+  _rodadaAtual = parseInt(localStorage.getItem('rodada_num')||'1');
+  _rodadaStatus = JSON.parse(localStorage.getItem('rodada_status')||'{}');
+  _rodadaHist   = JSON.parse(localStorage.getItem('rodada_hist')||'[]');
+}
+function saveCompras(){
+  localStorage.setItem('compras_data', JSON.stringify(CATS.map(c=>c.items)));
+  localStorage.setItem('rodada_num',   String(_rodadaAtual));
+  localStorage.setItem('rodada_status',JSON.stringify(_rodadaStatus));
+  localStorage.setItem('rodada_hist',  JSON.stringify(_rodadaHist));
+}
+
+function iKey(catKey, idx){ return `${catKey}_${idx}`; }
+function getStatus(catKey, idx){
+  return (_rodadaStatus[iKey(catKey,idx)]||{}).status || 'Pendente';
+}
+
+function renderCatAccordions(){
+  loadCompras();
+  updateComprasStats();
+  renderRodadaLabel();
+  renderFaltantesAlert();
+  renderHistRodadas();
+  const container=document.getElementById('cat-accordions');
+  container.innerHTML='';
+  CATS.forEach(cat=>{
+    const total = cat.items.length;
+    const comprados = cat.items.filter((_,i)=>getStatus(cat.key,i)==='Comprado').length;
+    const faltantes = cat.items.filter((_,i)=>getStatus(cat.key,i)==='Faltante').length;
+    const pct = total ? Math.round(comprados/total*100) : 0;
+    const casaClass=cat.casa==='Ambos'?'tag-both':cat.casa==='Bica Bar'?'tag-bica':'tag-amp';
+    const acc=document.createElement('div');
+    acc.className='cat-accordion'; acc.dataset.key=cat.key;
+    acc.innerHTML=`
+      <div class="cat-progress"><div class="cat-progress-fill" style="width:${pct}%"></div></div>
+      <div class="cat-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="cat-emoji">${cat.emoji}</div>
+        <div class="cat-info">
+          <div class="cat-name">${cat.label}</div>
+          <div class="cat-count">${comprados}/${total} comprados${faltantes?` · <span style="color:var(--danger)">${faltantes} faltante${faltantes>1?'s':''}</span>`:''}</div>
+        </div>
+        <span class="tag ${casaClass}" style="font-size:10px">${cat.casa}</span>
+        <span class="cat-arrow">▾</span>
+      </div>
+      <div class="cat-body">
+        <div id="items-${cat.key}"></div>
+        <button class="cat-add-btn" onclick="addCompraItem('${cat.key}')">＋ Adicionar item</button>
+      </div>`;
+    container.appendChild(acc);
+    renderCatItems(cat.key);
+  });
+}
+
+function renderCatItems(key){
+  const cat=CATS.find(c=>c.key===key);
+  const container=document.getElementById('items-'+key);
+  if(!container) return;
+  container.innerHTML='';
+  cat.items.forEach((item,idx)=>{
+    const st = getStatus(key, idx);
+    const rd = _rodadaStatus[iKey(key,idx)]||{};
+    const card=document.createElement('div');
+    card.className='compra-card';
+    card.onclick=()=>abrirModalItem(key,idx);
+    card.innerHTML=`
+      <div class="compra-card-left">
+        <div class="compra-name${st==='Comprado'?' done-item':''}">${item.item}</div>
+        <div class="compra-forn">${rd.altForn?`↳ ${rd.altForn}`:item.forn}</div>
+        ${rd.altObs?`<div style="font-size:10px;color:var(--text3);margin-top:2px;font-style:italic">${rd.altObs}</div>`:''}
+      </div>
+      <div class="compra-right">
+        <span class="compra-qtd">${rd.qtd||item.qtd||'—'}</span>
+        <span class="st-badge st-${st}">${stEmoji(st)} ${st}</span>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function stEmoji(st){
+  return {Pendente:'🔲',Buscando:'🔄',Faltante:'⚠️',Comprado:'✅'}[st]||'';
+}
+
+// ── Modal de item ──
+function abrirModalItem(catKey, idx){
+  const cat=CATS.find(c=>c.key===catKey);
+  const item=cat.items[idx];
+  const st=getStatus(catKey,idx);
+  const rd=_rodadaStatus[iKey(catKey,idx)]||{};
+  _itemEditKey={catKey,idx};
+  document.getElementById('mci-title').textContent=item.item;
+  document.getElementById('mci-forn').textContent=item.forn;
+  document.getElementById('mci-qtd').textContent=item.qtd?`Quantidade: ${item.qtd}`:'Quantidade não definida';
+  document.getElementById('mci-qtd-input').value=rd.qtd||item.qtd||'';
+  document.getElementById('alt-forn-input').value=rd.altForn||'';
+  document.getElementById('alt-obs-input').value=rd.altObs||'';
+  // highlight current status btn
+  document.querySelectorAll('.st-btn').forEach(b=>{
+    b.className='st-btn'+(b.dataset.st===st?' selected-'+st:'');
+  });
+  // show/hide alt forn
+  document.getElementById('alt-forn-wrap').className='alt-forn-wrap'+(st==='Faltante'?' show':'');
+  document.getElementById('modal-compra-item').classList.add('open');
+}
+function fecharModalItem(){ document.getElementById('modal-compra-item').classList.remove('open'); }
+
+function setItemStatus(st, btn){
+  document.querySelectorAll('.st-btn').forEach(b=>b.className='st-btn');
+  btn.className='st-btn selected-'+st;
+  document.getElementById('alt-forn-wrap').className='alt-forn-wrap'+(st==='Faltante'?' show':'');
+}
+
+function salvarItemStatus(){
+  if(!_itemEditKey) return;
+  const {catKey,idx}=_itemEditKey;
+  const st=document.querySelector('.st-btn[class*="selected-"]')?.dataset.st||'Pendente';
+  const altForn=document.getElementById('alt-forn-input').value.trim();
+  const altObs=document.getElementById('alt-obs-input').value.trim();
+  const qtd=document.getElementById('mci-qtd-input').value.trim();
+  _rodadaStatus[iKey(catKey,idx)]={status:st,altForn,altObs,qtd};
+  // update item qtd too
+  const cat=CATS.find(c=>c.key===catKey);
+  if(qtd) cat.items[idx].qtd=qtd;
+  saveCompras();
+  fecharModalItem();
+  renderCatAccordions();
+}
+
+function addCompraItem(key){
+  CATS.find(c=>c.key===key).items.push({item:'Novo item',qtd:'',forn:'',urg:'Normal'});
+  saveCompras();
+  renderCatAccordions();
+  const acc=document.querySelector(`.cat-accordion[data-key="${key}"]`);
+  if(acc) acc.classList.add('open');
+}
+
+// ── Stats ──
+function updateComprasStats(){
+  let total=0,comprado=0,faltante=0;
+  CATS.forEach(c=>c.items.forEach((_,i)=>{
+    total++;
+    const st=getStatus(c.key,i);
+    if(st==='Comprado')comprado++;
+    if(st==='Faltante')faltante++;
+  }));
+  const pct=total?Math.round(comprado/total*100):0;
+  document.getElementById('cs-total').textContent=total;
+  document.getElementById('cs-comprado').textContent=comprado;
+  document.getElementById('cs-faltante').textContent=faltante;
+  document.getElementById('cs-pct').textContent=pct+'%';
+  document.getElementById('cs-bar').style.width=pct+'%';
+  // update dashboard urgentes (faltantes)
+  const dcCard=document.getElementById('dc-urgentes');
+  if(dcCard){
+    dcCard.className='dash-card'+(faltante>0?' danger':'');
+    document.getElementById('dc-urg-num').textContent=faltante;
+  }
+}
+
+// ── Rodada ──
+function renderRodadaLabel(){
+  document.getElementById('rodada-label').textContent=`🔄 Rodada ${_rodadaAtual}`;
+}
+
+function novaRodada(){
+  if(!confirm(`Iniciar Rodada ${_rodadaAtual+1}? Os status atuais serão mantidos no histórico.`)) return;
+  fecharRodadaSilencioso();
+  _rodadaAtual++;
+  // reset apenas Pendente e Buscando (Faltante e Comprado mantêm)
+  Object.keys(_rodadaStatus).forEach(k=>{
+    if(_rodadaStatus[k].status==='Buscando') _rodadaStatus[k].status='Pendente';
+  });
+  saveCompras();
+  renderCatAccordions();
+  showSyncBar(`🔄 Rodada ${_rodadaAtual} iniciada`);
+}
+
+function fecharRodada(){
+  const faltantes=[];
+  CATS.forEach(c=>c.items.forEach((item,i)=>{
+    const st=getStatus(c.key,i);
+    if(st==='Faltante') faltantes.push({item:item.item,cat:c.label,alt:(_rodadaStatus[iKey(c.key,i)]||{}).altForn});
+  }));
+  if(faltantes.length>0){
+    const lista=faltantes.map(f=>`• ${f.item}${f.alt?' → '+f.alt:''}`).join('\n');
+    if(!confirm(`Fechar rodada ${_rodadaAtual} com ${faltantes.length} faltante(s):\n${lista}\n\nContinuar?`)) return;
+  }
+  fecharRodadaSilencioso();
+  saveCompras();
+  renderCatAccordions();
+  showSyncBar(`✅ Rodada ${_rodadaAtual} fechada e salva no histórico`);
+}
+
+function fecharRodadaSilencioso(){
+  const resumo={rodada:_rodadaAtual, ts:new Date().toISOString(), itens:[]};
+  CATS.forEach(c=>c.items.forEach((item,i)=>{
+    const rd=_rodadaStatus[iKey(c.key,i)]||{};
+    resumo.itens.push({item:item.item,cat:c.label,status:rd.status||'Pendente',altForn:rd.altForn||'',qtd:rd.qtd||item.qtd||''});
+  }));
+  _rodadaHist.unshift(resumo);
+}
+
+function renderFaltantesAlert(){
+  const div=document.getElementById('faltantes-alert');
+  const faltantes=[];
+  CATS.forEach(c=>c.items.forEach((item,i)=>{
+    if(getStatus(c.key,i)==='Faltante'){
+      const rd=_rodadaStatus[iKey(c.key,i)]||{};
+      faltantes.push({item:item.item,alt:rd.altForn});
+    }
+  }));
+  if(!faltantes.length){div.style.display='none';return;}
+  div.style.display='block';
+  div.innerHTML=`
+    <div style="background:var(--danger-dim);border:1px solid rgba(240,100,100,.25);border-radius:var(--r);padding:12px 14px">
+      <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px">⚠️ ${faltantes.length} item(s) faltante(s) nesta rodada</div>
+      ${faltantes.map(f=>`<div style="font-size:12px;color:var(--text2);padding:3px 0;display:flex;gap:6px">
+        <span style="color:var(--danger)">↳</span>
+        <span>${f.item}${f.alt?` <span style="color:var(--text3)">→ buscar em: ${f.alt}</span>`:' <span style="color:var(--text3)">sem alternativa definida</span>'}</span>
+      </div>`).join('')}
+    </div>`;
+}
+
+function renderHistRodadas(){
+  const wrap=document.getElementById('hist-rodadas-wrap');
+  const lista=document.getElementById('hist-rodadas-lista');
+  if(!_rodadaHist.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  lista.innerHTML='';
+  _rodadaHist.forEach(r=>{
+    const comprados=r.itens.filter(i=>i.status==='Comprado').length;
+    const faltantes=r.itens.filter(i=>i.status==='Faltante').length;
+    const dt=new Date(r.ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const div=document.createElement('div');
+    div.className='hist-rodada';
+    div.innerHTML=`
+      <div class="hist-rodada-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="hist-rodada-num">Rodada ${r.rodada}</div>
+        <div class="hist-rodada-info">${comprados} comprados · ${faltantes} faltantes · ${dt}</div>
+        <span style="font-size:12px;color:var(--text3)">▾</span>
+      </div>
+      <div class="hist-rodada-body">
+        ${r.itens.map(it=>`
+          <div class="hist-rodada-item">
+            <div class="dot" style="background:${it.status==='Comprado'?'var(--ok)':it.status==='Faltante'?'var(--danger)':'var(--text3)'}"></div>
+            <span style="font-size:13px;flex:1">${it.item}</span>
+            ${it.altForn?`<span style="font-size:11px;color:var(--text3)">→ ${it.altForn}</span>`:''}
+            <span class="st-badge st-${it.status}" style="font-size:9px">${it.status}</span>
+          </div>`).join('')}
+      </div>`;
+    lista.appendChild(div);
+  });
+}
+
+async function syncCompras(){
+  const token=localStorage.getItem('notion_token');
+  if(!token){alert('Configure o token Notion em ⚙️ Config.');return;}
+  showSyncBar('Enviando lista de compras…',false);
+  setSyncStatus('syncing','enviando…');
+  const semana=getSemana(); let ok=0,err=0;
+  for(const cat of CATS){
+    for(let idx=0;idx<cat.items.length;idx++){
+      const item=cat.items[idx];
+      const rd=_rodadaStatus[iKey(cat.key,idx)]||{};
+      const st=rd.status||'Pendente';
+      const body={parent:{database_id:DB_COMP},properties:{
+        'Item':{title:[{text:{content:item.item}}]},
+        'Categoria':{select:{name:cat.cat}},
+        'Quantidade':{rich_text:[{text:{content:rd.qtd||item.qtd||''}}]},
+        'Fornecedor':{rich_text:[{text:{content:rd.altForn||item.forn||''}}]},
+        'Urgência':{select:{name:st==='Faltante'?'Urgente':st==='Comprado'?'Faturado':'Normal'}},
+        'Casa':{select:{name:cat.casa}},
+        'Semana':{rich_text:[{text:{content:semana}}]},
+        'Observação':{rich_text:[{text:{content:rd.altObs||''}}]},
+      }};
+      try{const r=await nPost('pages',body,token);if(r.id)ok++;else err++;}
+      catch(e){err++;}
+    }
+  }
+  setSyncStatus(err===0?'ok':'err',err===0?'sincronizado':'erros');
+  showSyncBar(err===0?`✅ ${ok} itens enviados ao Notion`:`${ok} enviados · ${err} erros`);
+}
+
+function exportTxt(){
+  let txt=`LISTA DE COMPRAS — Bica Bar & AMP 213\nSemana: ${getSemana()} · Rodada ${_rodadaAtual}\n\n`;
+  // Agrupar por status
+  const grupos={Faltante:[],Buscando:[],Pendente:[],Comprado:[]};
+  CATS.forEach(c=>c.items.forEach((item,i)=>{
+    const st=getStatus(c.key,i);
+    const rd=_rodadaStatus[iKey(c.key,i)]||{};
+    grupos[st].push(`  • [${c.label}] ${item.item} — ${rd.qtd||item.qtd||'?'} — ${rd.altForn||item.forn}${rd.altObs?' ('+rd.altObs+')':''}`);
+  }));
+  if(grupos.Faltante.length){txt+=`⚠️ FALTANTES (${grupos.Faltante.length})\n${grupos.Faltante.join('\n')}\n\n`;}
+  if(grupos.Buscando.length){txt+=`🔄 BUSCANDO\n${grupos.Buscando.join('\n')}\n\n`;}
+  if(grupos.Pendente.length){txt+=`🔲 PENDENTE\n${grupos.Pendente.join('\n')}\n\n`;}
+  if(grupos.Comprado.length){txt+=`✅ COMPRADO\n${grupos.Comprado.join('\n')}\n\n`;}
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+  a.download='compras-r'+_rodadaAtual+'-'+new Date().toISOString().slice(0,10)+'.txt';
+  a.click();
+}
+
+// ════════════════════════════════════════════════
+// ESCALA
+// ════════════════════════════════════════════════
+function renderEscala(){
+  const container=document.getElementById('escala-lista');
+  container.innerHTML='';
+  EQUIPE.forEach(p=>{
+    const card=document.createElement('div');
+    card.className='escala-person';
+    card.style.cursor='pointer';
+    card.onclick=()=>abrirModalPessoa(p.nome);
+    const diasHtml=p.dias.map(d=>`<div class="esc-dia ${d.c}"><div class="esc-dia-label">${d.d}</div><div class="esc-dia-hour">${d.t}</div></div>`).join('');
+    card.innerHTML=`
+      <div class="esc-avatar" style="background:${p.cor}22;border:1px solid ${p.cor}44">${p.emoji}</div>
+      <div class="esc-info">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="esc-name">${p.nome}</div>
+          <span style="font-size:10px;color:var(--text3)">→ ver funções</span>
+        </div>
+        <div class="esc-cargo">${p.cargo}</div>
+        <div class="esc-dias">${diasHtml}</div>
+        ${p.alertDanger?`<div class="esc-alert-d">⚠️ ${p.alertDanger}</div>`:''}
+        ${p.alert?`<div class="esc-alert">⚡ ${p.alert}</div>`:''}
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════════════
+// MODAL PESSOA
+// ════════════════════════════════════════════════
+const FUNCOES = {
+  'Lana': {
+    casas: ['Bica Bar','AMP 213'],
+    areas: [
+      { label:'📋 Gestão diária', itens:[
+        'Coordenar toda a equipe durante o serviço',
+        'Garantir padrão de atendimento e experiência',
+        'Abertura e fechamento da casa',
+        'Comunicação com fornecedores (migrando para Thaynan)',
+        'Escala de intervalos da equipe',
+      ]},
+      { label:'🛒 Compras & logística', itens:[
+        'Responsável pelas compras semanais',
+        'Gestão de múltiplos fornecedores e rodadas de compra',
+        'Recebimento de entregas na casa',
+        'Sinalizar itens faltantes para alternativas',
+      ]},
+      { label:'📅 Terça-feira', itens:[
+        'Abrir a casa às 9h',
+        'Supervisionar limpeza e organização (Thiago)',
+        'Executar pagamentos da equipe via Pix (até 17h)',
+        'Fechar a casa ~17h',
+      ]},
+    ]
+  },
+  'Suedney': {
+    casas: ['Bica Bar','AMP 213'],
+    areas: [
+      { label:'👨‍🍳 Responsabilidades fixas', itens:[
+        'Cardápio Bica Bar + AMP 213',
+        'Refeição da equipe nos dias de operação',
+        'Controle de armazenamento de alimentos (data/temp)',
+        'Direcionamento do auxiliar de cozinha',
+      ]},
+      { label:'🧹 Terça — pré-produção', itens:[
+        'Limpeza profunda da cozinha',
+        'Pré-produção de insumos para quinta-feira',
+        'Verificar estoque e sinalizar falta',
+        'Enviar lista de compras para Lana — PRAZO 14h',
+      ]},
+      { label:'🍽 Dias de operação', itens:[
+        'Chegar 1h antes da equipe de salão (16h)',
+        'Mise en place completo antes de abrir',
+        'Cozinha limpa ao fechar',
+        'Sinalizar itens faltantes para Lana ao fechar',
+      ]},
+    ]
+  },
+  'Thiago': {
+    casas: ['Bica Bar','AMP 213'],
+    areas: [
+      { label:'🧹 Responsabilidades fixas', itens:[
+        'Limpeza do salão, banheiros e áreas comuns',
+        'Organização do espaço antes e durante operação',
+        'Suporte geral na operação',
+        'Retirada e descarte do lixo ao fechar',
+      ]},
+      { label:'📅 Terça', itens:[
+        'Limpeza profunda com Lana (9h–17h)',
+        'Piso, móveis, vidros, banheiro completo',
+      ]},
+    ]
+  },
+  'Luciano': {
+    casas: ['Bica Bar'],
+    areas: [
+      { label:'🍸 Responsabilidades fixas', itens:[
+        'Produção de drinks e coquetelaria autoral',
+        'Organização do bar',
+        'Higienização de frutas para os drinks',
+      ]},
+      { label:'📅 Terça', itens:[
+        'Produção de xaropes artesanais para a semana',
+        'Limpeza e organização do bar',
+        'Verificar estoque de insumos do bar',
+        'Enviar lista de insumos para Lana — PRAZO 14h',
+        '⚠️ Tempo ocioso após tarefas — propor demandas adicionais',
+      ]},
+    ]
+  },
+  'Rafael': {
+    casas: ['Bica Bar'],
+    areas: [
+      { label:'🍹 Responsabilidades fixas', itens:[
+        'Produção de drinks',
+        'Organização do bar',
+        'Higienização de frutas',
+        'Bebidas e destilados guardados ao fechar',
+      ]},
+      { label:'📅 Quarta', itens:[
+        'Enviar lista de compras do bar para Lana até 14h',
+      ]},
+    ]
+  },
+  'Ruan': {
+    casas: ['Bica Bar'],
+    areas: [
+      { label:'📦 Estoque', itens:[
+        'Contagem de bebidas e insumos antes da operação',
+        'Enviar relatório de inventário para Lana',
+        'Sinalizar itens abaixo do mínimo',
+        'Contagem rápida ao fechar — registrar e reportar',
+      ]},
+      { label:'🚪 Recepção (sextas)', itens:[
+        'Receber clientes na entrada',
+        'Direcionar às mesas com hospitalidade',
+        '⚠️ Definir horário de contagem para não conflitar com recepção',
+      ]},
+    ]
+  },
+  'Gleysson': {
+    casas: ['Bica Bar'],
+    areas: [
+      { label:'🤵 Responsabilidades fixas', itens:[
+        'Atendimento às mesas com qualidade',
+        'Garantir experiência do cliente',
+        'Organização do salão na abertura e fechamento',
+      ]},
+    ]
+  },
+  'Douglas': {
+    casas: ['Bica Bar'],
+    areas: [
+      { label:'🤵 Responsabilidades fixas', itens:[
+        'Atendimento às mesas com qualidade',
+        'Garantir experiência do cliente',
+        'Organização do salão na abertura e fechamento',
+      ]},
+    ]
+  },
+  '+1 Garçom': {
+    casas: ['Bica Bar'],
+    areas: [
+      { label:'🤵 Reforço Sex & Sáb', itens:[
+        'Suporte ao time de garçons nos dias de maior movimento',
+        '⚠️ Pessoa ainda não definida — pendente de Lana',
+      ]},
+    ]
+  },
+  'Jade': {
+    casas: ['AMP 213'],
+    areas: [
+      { label:'💼 Comercial', itens:[
+        'Atendimento e fechamento de leads AMP 213',
+        'Organização comercial com Thaynan',
+        'Presença nos eventos como ponto de contato do cliente',
+        'Cadência de follow-up com leads (a estruturar)',
+      ]},
+    ]
+  },
+};
+
+function abrirModalPessoa(nome){
+  const p=EQUIPE.find(e=>e.nome===nome);
+  const f=FUNCOES[nome];
+  if(!p||!f) return;
+
+  // Header
+  const av=document.getElementById('mp-avatar');
+  av.textContent=p.emoji;
+  av.style.background=p.cor+'22';
+  av.style.border=`1px solid ${p.cor}44`;
+  document.getElementById('mp-nome').textContent=p.nome;
+  document.getElementById('mp-cargo').textContent=p.cargo;
+
+  // Casas
+  const casasEl=document.getElementById('mp-casas');
+  casasEl.innerHTML=f.casas.map(c=>`<span class="tag ${c==='Bica Bar'?'tag-bica':c==='AMP 213'?'tag-amp':'tag-both'}">${c}</span>`).join('');
+
+  // Alertas
+  const alertEl=document.getElementById('mp-alerta');
+  if(p.alertDanger){
+    alertEl.style.display='block';
+    alertEl.innerHTML=`<div style="background:var(--danger-dim);border:1px solid rgba(240,100,100,.25);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--danger)">⚠️ ${p.alertDanger}</div>`;
+  } else if(p.alert){
+    alertEl.style.display='block';
+    alertEl.innerHTML=`<div style="background:var(--warn-dim);border:1px solid rgba(245,197,66,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--warn)">⚡ ${p.alert}</div>`;
+  } else {
+    alertEl.style.display='none';
+  }
+
+  // Dias
+  const diasEl=document.getElementById('mp-dias');
+  diasEl.innerHTML=p.dias.map(d=>`<div class="esc-dia ${d.c}"><div class="esc-dia-label">${d.d}</div><div class="esc-dia-hour">${d.t}</div></div>`).join('');
+
+  // Funções por área
+  const funcoesEl=document.getElementById('mp-funcoes');
+  funcoesEl.innerHTML=f.areas.map(a=>`
+    <div style="margin-bottom:16px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">${a.label}</div>
+      ${a.itens.map(it=>`
+        <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <span style="color:var(--text3);flex-shrink:0;margin-top:2px">→</span>
+          <span style="color:${it.startsWith('⚠️')?'var(--warn)':it.startsWith('⚡')?'var(--amp)':'var(--text)'}">${it}</span>
+        </div>`).join('')}
+    </div>`).join('');
+
+  document.getElementById('modal-pessoa').classList.add('open');
+}
+
+// ════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════
+function updateDashStats(){
+  let checksDone=0,checksTotal=0;
+  CHECKLISTS.forEach(cl=>{
+    const saved=JSON.parse(localStorage.getItem('chk_'+cl.id)||'{}');
+    cl.sections.forEach(s=>s.items.forEach((it,i)=>{checksTotal++;if(saved[s.label+i])checksDone++;}));
+  });
+  loadCompras();
+  let urg=0; CATS.forEach(c=>c.items.forEach(i=>{if(i.urg==='Urgente')urg++;}));
+  const urgCard=document.getElementById('dc-urgentes');
+  urgCard.className='dash-card'+(urg>0?' danger':'');
+  document.getElementById('dc-urg-num').textContent=urg;
+  document.getElementById('dc-chk-num').textContent=`${checksDone}/${checksTotal}`;
+  // urgentes list
+  const urgDiv=document.getElementById('dash-urgentes');
+  urgDiv.innerHTML='';
+  const token=localStorage.getItem('notion_token');
+  if(!token){
+    urgDiv.innerHTML=`<div class="urgente-item"><div class="urgente-icon">⚙️</div><div><div class="urgente-text">Token Notion não configurado</div><div class="urgente-meta">Vá em Config para ativar sync</div></div></div>`;
+  }
+  // compras urgentes
+  CATS.forEach(cat=>cat.items.forEach(item=>{
+    if(item.urg==='Urgente'){
+      urgDiv.innerHTML+=`<div class="urgente-item"><div class="urgente-icon">${cat.emoji}</div><div><div class="urgente-text">${item.item}</div><div class="urgente-meta">${cat.label} · ${item.qtd||'qtd não definida'}</div></div></div>`;
+    }
+  }));
+  if(!urgDiv.innerHTML) urgDiv.innerHTML='<div style="padding:12px 0;font-size:13px;color:var(--text3)">✓ Nenhuma urgência agora</div>';
+}
+
+// ════════════════════════════════════════════════
+// SYNC BAR
+// ════════════════════════════════════════════════
+function showSyncBar(msg, autohide=true){
+  const bar=document.getElementById('sync-bar');
+  document.getElementById('sync-bar-text').textContent=msg;
+  bar.classList.add('show');
+  if(autohide) setTimeout(()=>hideSyncBar(),3500);
+}
+function hideSyncBar(){ document.getElementById('sync-bar').classList.remove('show'); }
+
+// ════════════════════════════════════════════════
+// SYNC STATUS
+// ════════════════════════════════════════════════
+function setSyncStatus(type,label){
+  const d=document.getElementById('sync-dot'),l=document.getElementById('sync-label');
+  d.className='sync-dot'+(type?' '+type:'');
+  l.textContent=label;
+}
+
+// ════════════════════════════════════════════════
+// NOTION API
+// ════════════════════════════════════════════════
+async function nPost(endpoint,body,token){
+  const r=await fetch(`${NOTION_API}/${endpoint}`,{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json','Notion-Version':N_VER},
+    body:JSON.stringify(body)
+  });
+  return r.json();
+}
+
+// ════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════
+function salvarToken(){
+  const t=document.getElementById('cfg-token').value.trim();
+  if(!t){alert('Token vazio.');return;}
+  localStorage.setItem('notion_token',t);
+  setSyncStatus('ok','conectado');
+  showSyncBar('✅ Token salvo. Notion conectado.');
+  updateDashStats();
+}
+function limparToken(){
+  localStorage.removeItem('notion_token');
+  document.getElementById('cfg-token').value='';
+  setSyncStatus('','offline');
+}
+function exportBackup(){
+  const data={compras:CATS.map(c=>c.items),checks:{},historico:JSON.parse(localStorage.getItem('chk_historico')||'[]')};
+  CHECKLISTS.forEach(c=>{data.checks[c.id]=JSON.parse(localStorage.getItem('chk_'+c.id)||'{}');});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download='backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+function limparTudo(){
+  ['compras_data','chk_historico',...CHECKLISTS.map(c=>'chk_'+c.id)].forEach(k=>localStorage.removeItem(k));
+  location.reload();
+}
+
+// ════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════
+function getSemana(){
+  const h=new Date(),s=new Date(h);
+  s.setDate(h.getDate()-h.getDay()+1);
+  const e=new Date(s);e.setDate(s.getDate()+5);
+  return s.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' → '+e.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+}
+const DIAS=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+const MESES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  const now=new Date();
+  document.getElementById('dash-dia').textContent=DIAS[now.getDay()];
+  document.getElementById('dash-data').textContent=`${now.getDate()} de ${MESES[now.getMonth()]} · semana ${getSemana()}`;
+  document.getElementById('semana-label').textContent=getSemana();
+  const t=localStorage.getItem('notion_token');
+  if(t){document.getElementById('cfg-token').value=t;setSyncStatus('ok','conectado');}
+  loadCompras();
+  updateDashStats();
+  renderAccordions();
+});
+</script>
+</body>
+</html>
